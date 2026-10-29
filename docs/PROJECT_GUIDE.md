@@ -2,7 +2,6 @@
 
 **Project title:** Proofline: Privacy-Preserving Digital Identity Verification with Zero-Knowledge Proofs
 
-**Project stage:** Phase-II research and demonstration prototype
 
 ## Purpose
 
