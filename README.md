@@ -1,6 +1,6 @@
 # Proofline: Privacy-Preserving Digital Identity Verification with Zero-Knowledge Proofs
 
-Proofline is a Phase-II prototype for decentralized identity and selective-disclosure access control. It combines a React dashboard, FastAPI policy decision service, Node.js Groth16 service, Circom circuits, and Solidity registries. An alternate Express/MongoDB API is also included for a Node.js-only local run. The current local demo supports credential issuance, holder records, policy verification requests, audit entries, and demo peer votes.
+Proofline is a prototype for decentralized identity and selective-disclosure access control. It combines a React dashboard, FastAPI policy decision service, Node.js Groth16 service, Circom circuits, and Solidity registries. An alternate Express/MongoDB API is also included for a Node.js-only local run. The current local demo supports credential issuance, holder records, policy verification requests, audit entries, and demo peer votes.
 
 > **Prototype status:** this is a research/demo codebase, not a production identity or security product. Do not enter real personal data, use the development signing keys, or deploy the included contracts to a public network. The FastAPI backend stores credentials as JSON in SQLite; the alternate Node API stores them in MongoDB. IPFS upload, on-chain writes, secure wallet encryption, and production-grade DID/VC signatures need further integration. Access fails closed if real proof verification is unavailable.
 
