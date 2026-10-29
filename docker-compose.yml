@@ -1,0 +1,185 @@
+services:
+  # ─────────────────────────────────────────────────────────────────
+  # Hardhat local blockchain node (Chain A — Verifiable Data Registry)
+  # ─────────────────────────────────────────────────────────────────
+  hardhat-node:
+    image: node:20-slim
+    working_dir: /app
+    volumes:
+      - ./hardhat:/app
+      - hardhat_node_modules:/app/node_modules
+    ports:
+      - "8545:8545"
+    command: sh -c "npm install && npx hardhat node --hostname 0.0.0.0"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8545 -X POST -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"method\":\"eth_chainId\",\"params\":[],\"id\":1}' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - zkp-network
+
+  # ─────────────────────────────────────────────────────────────────
+  # Contract Deployer (one-shot job, runs after hardhat-node is healthy)
+  # ─────────────────────────────────────────────────────────────────
+  deployer:
+    image: node:20-slim
+    working_dir: /app
+    volumes:
+      - ./hardhat:/app
+      - hardhat_node_modules:/app/node_modules
+    environment:
+      - HARDHAT_NETWORK=localhost
+    command: sh -c "npm install && npx hardhat run scripts/deploy.ts --network localhost"
+    depends_on:
+      hardhat-node:
+        condition: service_healthy
+    networks:
+      - zkp-network
+    restart: "no"
+
+  # ─────────────────────────────────────────────────────────────────
+  # Redis — task queue for async proof generation
+  # ─────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zkp-network
+
+  # ─────────────────────────────────────────────────────────────────
+  # ZKP Proof Generator Service (Node.js + SnarkJS)
+  # ─────────────────────────────────────────────────────────────────
+  zkp-service:
+    build:
+      context: ./zkp-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./circuits:/app/circuits-src:ro        # Circom source (read-only)
+      - zkp_circuits:/app/circuits             # Compiled WASM artifacts
+      - zkp_zkeys:/app/zkeys                   # Proving keys
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+      - CIRCUITS_DIR=/app/circuits
+      - ZKEY_DIR=/app/zkeys
+      - IPFS_ENABLED=false
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - zkp-network
+
+  # ─────────────────────────────────────────────────────────────────
+  # Python FastAPI Backend (PDP / PEP / APIs)
+  # ─────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app:ro
+      - ./hardhat/artifacts:/app/hardhat-artifacts:ro   # Contract ABIs
+      - backend_db:/app/data
+    environment:
+      - APP_NAME=ZKP-DID Backend
+      - DEBUG=true
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/zkp_did.db
+      - ETH_RPC_URL=http://hardhat-node:8545
+      - CHAIN_ID=31337
+      - ZKP_SERVICE_URL=http://zkp-service:3001
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      zkp-service:
+        condition: service_healthy
+      hardhat-node:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - zkp-network
+
+  # ─────────────────────────────────────────────────────────────────
+  # React Frontend (Nginx-served SPA)
+  # ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+      - VITE_ZKP_SERVICE_URL=http://localhost:3001
+      - VITE_CHAIN_ID=31337
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - zkp-network
+
+  # ─────────────────────────────────────────────────────────────────
+  # Celery Worker (async proof generation tasks)
+  # ─────────────────────────────────────────────────────────────────
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.tasks worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend/app:/app/app:ro
+      - ./hardhat/artifacts:/app/hardhat-artifacts:ro
+    environment:
+      - APP_NAME=ZKP-DID Celery Worker
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/zkp_did.db
+      - ETH_RPC_URL=http://hardhat-node:8545
+      - ZKP_SERVICE_URL=http://zkp-service:3001
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+      zkp-service:
+        condition: service_healthy
+    networks:
+      - zkp-network
+
+# ─────────────────────────────────────────────────────────────────
+# Named volumes for persistent data
+# ─────────────────────────────────────────────────────────────────
+volumes:
+  redis_data:
+  backend_db:
+  zkp_circuits:
+  zkp_zkeys:
+  hardhat_node_modules:
+
+# ─────────────────────────────────────────────────────────────────
+# Shared network
+# ─────────────────────────────────────────────────────────────────
+networks:
+  zkp-network:
+    driver: bridge

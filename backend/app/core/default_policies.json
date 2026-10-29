@@ -1,0 +1,81 @@
+{
+  "academic": {
+    "domain": "academic",
+    "description": "Access policy for academic research repositories and educational credentials",
+    "predicates": [
+      {
+        "type": "age_gte",
+        "threshold": 18,
+        "description": "Subject must be at least 18 years of age"
+      },
+      {
+        "type": "org_member",
+        "merkle_root": "0x2e8f1b6a4c9d3e5f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f",
+        "description": "Subject must be a verified member of the academic consortium"
+      },
+      {
+        "type": "trust_score_gte",
+        "threshold": 0.8,
+        "description": "Subject trust score must be >= 0.80"
+      }
+    ]
+  },
+  "iot": {
+    "domain": "iot",
+    "description": "Access policy for industrial IoT telemetry and control planes",
+    "predicates": [
+      {
+        "type": "org_member",
+        "merkle_root": "0x3f9a2c7b5d1e4f6a8b0c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a",
+        "description": "Device must belong to authorized IoT registry"
+      },
+      {
+        "type": "trust_score_gte",
+        "threshold": 0.75,
+        "description": "Device trust score must be >= 0.75"
+      }
+    ]
+  },
+  "enterprise": {
+    "domain": "enterprise",
+    "description": "Access policy for internal enterprise systems and privileged assets",
+    "predicates": [
+      {
+        "type": "org_member",
+        "merkle_root": "0x4a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b",
+        "description": "Employee must be verified in active enterprise organization"
+      },
+      {
+        "type": "has_qualification",
+        "qualification_code": "SEC_OPS",
+        "description": "Operator must possess valid Security Operations clearance"
+      },
+      {
+        "type": "trust_score_gte",
+        "threshold": 0.85,
+        "description": "Trust rating must be >= 0.85"
+      }
+    ]
+  },
+  "healthcare": {
+    "domain": "healthcare",
+    "description": "Access policy for patient health records and medical trial datasets",
+    "predicates": [
+      {
+        "type": "age_gte",
+        "threshold": 21,
+        "description": "Practitioner must be at least 21 years of age"
+      },
+      {
+        "type": "has_qualification",
+        "qualification_code": "HIPAA_CERT",
+        "description": "Practitioner must hold certified HIPAA compliance credential"
+      },
+      {
+        "type": "trust_score_gte",
+        "threshold": 0.9,
+        "description": "Clinical trust index must be >= 0.90"
+      }
+    ]
+  }
+}

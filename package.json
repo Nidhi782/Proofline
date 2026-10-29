@@ -1,0 +1,24 @@
+{
+  "name": "zkp-did-framework",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proofline: Privacy-Preserving Digital Identity Verification with Zero-Knowledge Proofs",
+  "scripts": {
+    "dev:api": "npm --prefix backend-node run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "install:api": "npm --prefix backend-node install",
+    "dev:hardhat": "pnpm --filter zkp-did-contracts run node",
+    "dev:zkp": "pnpm --filter zkp-service run dev",
+    "build:all": "pnpm --filter zkp-did-contracts run compile && pnpm --filter zkp-service run build && pnpm --filter zkp-did-frontend run build",
+    "test:contracts": "pnpm --filter zkp-did-contracts run test",
+    "test:zkp": "pnpm --filter zkp-service run test",
+    "test:frontend": "pnpm --filter zkp-did-frontend run test",
+    "deploy:local": "pnpm --filter zkp-did-contracts run deploy:local",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down -v"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
